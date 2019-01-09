@@ -1,0 +1,14 @@
+import os
+import glob
+
+# On Windows, the path is incorrect, so change the path to
+# the environment one. Even though windows is the problem,
+# do it for all platforms
+newpath=os.environ.get('PATH')
+env = Environment(ENV = { 'PATH' : newpath })
+env.Replace(CCFLAGS='-Wno-deprecated-declarations -std=c++11')
+
+boost_libs = ['boost_program_options', 'boost_system', 'boost_chrono', 'pthread']
+
+source_files = glob.glob('*.cpp') + glob.glob('parser/*.cpp') + glob.glob('omp/*.cpp')
+env.Program('player', source_files, LIBS=boost_libs)
