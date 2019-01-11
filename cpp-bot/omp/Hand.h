@@ -3,6 +3,8 @@
 
 #include "Util.h"
 #include "Constants.h"
+#include <vector>
+#include <string>
 #include <array>
 #include <memory>
 #include <cstdint>
@@ -16,6 +18,8 @@
 #endif
 
 namespace omp {
+
+
 
 // Structure that combines the data from multiple cards so that hand strength can be evaluated efficiently.
 // It is essential when combining hands that exactly one of them was initialized using Hand::empty().
@@ -57,6 +61,18 @@ struct Hand
         #endif
         omp_assert(holeCards[0] < CARD_COUNT && holeCards[1] < CARD_COUNT);
         *this = CARDS[holeCards[0]] + CARDS[holeCards[1]];
+    }
+
+    Hand(std::vector<std::string> cards) {
+      for (int i=0; i<cards.size(); i++) {
+        // std::cout << cards[i] << ":" << RANK_MAP[std::string(1,cards[i].at(0))]*4 + SUIT_MAP[std::string(1,cards[i].at(1))] << ", ";
+        unsigned cardIdx = RANK_MAP[std::string(1,cards[i].at(0))]*4 + SUIT_MAP[std::string(1,cards[i].at(1))];
+        #if OMP_SSE2
+        omp_assert((uintptr_t)&mData % sizeof(__m128i) == 0);
+        #endif
+        omp_assert(cardIdx < CARD_COUNT);
+        *this += CARDS[cardIdx];
+      }
     }
 
     // Combine with another hand.

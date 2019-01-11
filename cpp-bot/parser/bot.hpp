@@ -13,14 +13,14 @@ public:
     //
     // Arguments:
     // new_game: the Game object.
-    virtual void handle_new_game(const Game& new_game);
+    virtual void handle_new_game(const Game& new_game) = 0;
 
     // Called when a new round starts. Called Game.num_rounds times.
     //
     // Arguments:
     // game: the Game object for the new round.
     // new_round: the new Round object.
-    virtual void handle_new_round(const Game& game, const Round& new_round);
+    virtual void handle_new_round(const Game& game, const Round& new_round) = 0;
 
     // Called when a round ends. Called Game.num_rounds times.
     //
@@ -46,7 +46,7 @@ public:
         const int new_bankroll,
         const int new_opponent_bankroll,
         const std::vector<std::string>& move_history
-    );
+    ) = 0;
 
     // Where the magic happens - your code should implement this function.
     // Called any time the server needs an action from your bot.
@@ -74,7 +74,7 @@ public:
         const float time_left,
         const int min_amount,
         const int max_amount
-    );
+    ) = 0;
 
     // Returns the cost of doing that action;
     static int action_cost(const Pot& pot, const Action& action);

@@ -84,7 +84,7 @@ public:
         const int max_amount
     );
 
-    Action bet_raise(const int amount, const ActionType legal_move_mask);
+    Action bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask);
     Action check_fold(const ActionType legal_move_mask);
 };
 

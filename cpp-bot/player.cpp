@@ -8,13 +8,12 @@ Player::Player() {
 
 void Player::handle_new_game(const Game& new_game) {
   HandEvaluator eval;
-  Hand h = Hand::empty();
+  Hand w = Hand::empty();
   Hand p = Hand::empty();
-  p += Hand(0) + Hand(1);
-  h += Hand(4) + Hand(5) + Hand(8);
-  Hand w = p + h;
-  Hand w2 = Hand(0) + Hand(1) + Hand(2) + Hand(5) + Hand(8) ;
-  std::cout << "NEW GAME TEST: " << eval.evaluate(w2) << " : " << eval.evaluate(w) << "\n";
+  p += Hand(47) + Hand(43);
+  w += Hand(51) + Hand(1) + Hand(4) + Hand(5) + Hand(8);
+  std::cout << p.count() << "\n";
+  std::cout << "NEW GAME TEST: " << eval.evaluate(p) << " : " << eval.evaluate(w) << "\n";
 }
 
 void Player::handle_new_round(const Game& game, const Round& new_round) {
@@ -64,16 +63,24 @@ Action Player::get_action(
     const int max_amount
 ) {
   int call_cost = action_cost(pot, CallAction());
+  int all_in = game.round_stack-pot.total();
+
+  std::vector<std::string> whole_cards = cards;
+  // whole_cards.insert(whole_cards.end(), board_cards.begin(), board_cards.end());
 
   HandEvaluator eval;
+  // Hand pocket2 = Hand(cards);
+  // Hand board2 = Hand(board_cards);
+  // Hand whole2 = Hand(whole_cards);
+
   Hand pocket = Hand::empty();
   Hand board = Hand::empty();
   Hand whole = Hand::empty();
 
   for (int i=0; i<cards.size(); i++) {
-    std::cout << cards[i];
-    pocket += Hand(rank_map[std::string(1,cards[i].at(0))]*3 + suit_map[std::string(1,cards[i].at(1))]);
-    whole += Hand(rank_map[std::string(1,cards[i].at(0))]*3 + suit_map[std::string(1,cards[i].at(1))]);
+    std::cout << cards[i] << ":" << rank_map[std::string(1,cards[i].at(0))]*4 + suit_map[std::string(1,cards[i].at(1))] << ", ";
+    pocket += Hand(rank_map[std::string(1,cards[i].at(0))]*4 + suit_map[std::string(1,cards[i].at(1))]);
+    whole += Hand(rank_map[std::string(1,cards[i].at(0))]*4 + suit_map[std::string(1,cards[i].at(1))]);
   }
   for (int i=0; i<board_cards.size(); i++) {
     std::cout << board_cards[i];
@@ -81,21 +88,22 @@ Action Player::get_action(
     whole += Hand(suit_map[std::string(1,board_cards[i].at(1))]*13 + rank_map[std::string(1,board_cards[i].at(0))]);
   }
   std::cout << "\n";
-
-  std::cout << eval.evaluate(pocket) << " : " << eval.evaluate(board) << " : " << eval.evaluate(whole) << "\n";
+  // std::cout << whole_cards.size() << " : " << whole.count() <<  " : " << whole2.count() << std::string(b) <<"\n";
 
   int score = eval.evaluate(whole);
   int board_score = eval.evaluate(board);
+
+  std::cout << score << " : " << board_score << "\n";
 
   // preflop
   //================================
   if (board_cards.size() == 0) {
     // Pocket Pair
-    if (score > 8000) {
+    if (score >= 5500) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(300);
+        return BetAction(all_in);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(300);
+        return RaiseAction(all_in);
       } else if (legal_move_mask & CALL_ACTION_TYPE) {
         return CallAction();
       }
@@ -104,17 +112,17 @@ Action Player::get_action(
     // Face Card
     if (score > 4475) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(300);
+        return BetAction(all_in);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(300);
-      } else if (legal_move_mask & CALL_ACTION_TYPE) {
-        return CallAction();
+        return RaiseAction(all_in);
       }
     }
 
+    return check_fold(legal_move_mask);
+
     if (legal_move_mask & CHECK_ACTION_TYPE) {
       return CheckAction();
-    } else if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 4) {
+    } else if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
       return CallAction();
     } else {
       return FoldAction();
@@ -125,34 +133,20 @@ Action Player::get_action(
   // ==================
   if (board_cards.size() >= 3) {
     //better than board by 2 order
-    if (score - board_score > 9000) {
-      if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(100);
-      } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(100);
-      } else if (legal_move_mask & CALL_ACTION_TYPE) {
-        return CallAction();
-      }
+    if (score - board_score > 6000) {
+      return bet_raise(all_in, call_cost, legal_move_mask);
     }
     //better than board by 1 order
-    if (score - board_score > 5000) {
-      if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(50);
-      } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(50);
-      } else if (legal_move_mask & CALL_ACTION_TYPE) {
-        return CallAction();
-      }
-    }
-    if (score - board_score > 1000) {
-      if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(10);
-      } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(10);
-      }
-    }
+    // if (score - board_score > 4000) {
+    //   return bet_raise(all_in, call_cost, legal_move_mask);
+    // }
+    // if (score - board_score > 1000) {
+    //   if (legal_move_mask & BET_ACTION_TYPE) {
+    //     return BetAction(10000./(float)(score - board_score) * 100);
+    //   }
+    // }
 
-    if ((float)(pot.total())/(float)(call_cost) < 2 && score > 8000 && legal_move_mask & CALL_ACTION_TYPE) {
+    if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
       return CallAction();
     }
   }
@@ -178,21 +172,20 @@ Action Player::get_action(
   //   }
   // }
 
+  return check_fold(legal_move_mask);
   if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
     return CallAction();
-  } else if (legal_move_mask & CHECK_ACTION_TYPE) {
-    return CheckAction();
   } else {
-    return FoldAction();
+    return check_fold(legal_move_mask);
   }
 }
 
-Action Player::bet_raise(const int amount, const ActionType legal_move_mask) {
+Action Player::bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask) {
   if (legal_move_mask & BET_ACTION_TYPE) {
     return BetAction(amount);
-  } else if (legal_move_mask & RAISE_ACTION_TYPE) {
+  } else if (amount > call_cost && legal_move_mask & RAISE_ACTION_TYPE) {
     return RaiseAction(amount);
-  } else if (legal_move_mask & CALL_ACTION_TYPE) {
+  } else if (legal_move_mask & CALL_ACTION_TYPE && call_cost < amount) {
     return CallAction();
   }
   return check_fold(legal_move_mask);

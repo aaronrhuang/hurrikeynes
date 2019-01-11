@@ -1,5 +1,8 @@
 #ifndef OMP_CONSTANTS_H
 #define OMP_CONSTANTS_H
+#include <boost/assign/list_of.hpp>
+#include <map>
+#include <string>
 
 namespace omp {
 
@@ -25,6 +28,9 @@ static const unsigned FLUSH = 6 * HAND_CATEGORY_OFFSET;
 static const unsigned FULL_HOUSE = 7 * HAND_CATEGORY_OFFSET;
 static const unsigned FOUR_OF_A_KIND = 8 * HAND_CATEGORY_OFFSET;
 static const unsigned STRAIGHT_FLUSH = 9 * HAND_CATEGORY_OFFSET;
+
+static std::map<std::string, int> SUIT_MAP = boost::assign::map_list_of("s",0)("h",1)("c",2)("d",3);
+static std::map<std::string, int> RANK_MAP = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
 
 }
 
