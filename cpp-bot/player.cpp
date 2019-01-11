@@ -63,15 +63,8 @@ Action Player::get_action(
     const int max_amount
 ) {
   int call_cost = action_cost(pot, CallAction());
-  int all_in = game.round_stack-pot.total();
-
-  std::vector<std::string> whole_cards = cards;
-  // whole_cards.insert(whole_cards.end(), board_cards.begin(), board_cards.end());
 
   HandEvaluator eval;
-  // Hand pocket2 = Hand(cards);
-  // Hand board2 = Hand(board_cards);
-  // Hand whole2 = Hand(whole_cards);
 
   Hand pocket = Hand::empty();
   Hand board = Hand::empty();
@@ -88,7 +81,6 @@ Action Player::get_action(
     whole += Hand(suit_map[std::string(1,board_cards[i].at(1))]*13 + rank_map[std::string(1,board_cards[i].at(0))]);
   }
   std::cout << "\n";
-  // std::cout << whole_cards.size() << " : " << whole.count() <<  " : " << whole2.count() << std::string(b) <<"\n";
 
   int score = eval.evaluate(whole);
   int board_score = eval.evaluate(board);
@@ -101,9 +93,9 @@ Action Player::get_action(
     // Pocket Pair
     if (score >= 5500) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(all_in);
+        return BetAction(max_amount);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(all_in);
+        return RaiseAction(max_amount);
       } else if (legal_move_mask & CALL_ACTION_TYPE) {
         return CallAction();
       }
@@ -112,9 +104,9 @@ Action Player::get_action(
     // Face Card
     if (score > 4475) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(all_in);
+        return BetAction(max_amount);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(all_in);
+        return RaiseAction(max_amount);
       }
     }
 
@@ -134,43 +126,13 @@ Action Player::get_action(
   if (board_cards.size() >= 3) {
     //better than board by 2 order
     if (score - board_score > 6000) {
-      return bet_raise(all_in, call_cost, legal_move_mask);
+      return bet_raise(max_amount, call_cost, legal_move_mask);
     }
-    //better than board by 1 order
-    // if (score - board_score > 4000) {
-    //   return bet_raise(all_in, call_cost, legal_move_mask);
-    // }
-    // if (score - board_score > 1000) {
-    //   if (legal_move_mask & BET_ACTION_TYPE) {
-    //     return BetAction(10000./(float)(score - board_score) * 100);
-    //   }
-    // }
 
     if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
       return CallAction();
     }
   }
-
-  // if (score > 12300) {
-  //   if (legal_move_mask & BET_ACTION_TYPE) {
-  //     std::cout << "BET\n";
-  //     return BetAction(50);
-  //   } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-  //     std::cout << "RAISE\n";
-  //     return RaiseAction(50);
-  //   } else if (legal_move_mask & CALL_ACTION_TYPE) {
-  //     return CallAction();
-  //   }
-  // }
-
-  // Shitty
-  // if (score < 4300) {
-  //   if (legal_move_mask & CHECK_ACTION_TYPE) {
-  //     return CheckAction();
-  //   } else {
-  //     return FoldAction();
-  //   }
-  // }
 
   return check_fold(legal_move_mask);
   if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
