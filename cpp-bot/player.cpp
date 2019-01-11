@@ -49,7 +49,7 @@ void Player::handle_round_over(
 // move_history: a list of moves that have occurred during this round so far, earliest moves first.
 // time_left: a float of the number of seconds your bot has remaining in this match (not round).
 // min_amount: if BetAction or RaiseAction is valid, the smallest amount you can bet or raise to (i.e. the smallest you can increase your pip).
-// max_amount: if BetAction or RaiseAction is valid, the largest amount you can bet or raise to (i.e. the largest you can increase your pip).
+// all_in: if BetAction or RaiseAction is valid, the largest amount you can bet or raise to (i.e. the largest you can increase your pip).
 Action Player::get_action(
     const Game& game,
     const Round& round,
@@ -63,7 +63,7 @@ Action Player::get_action(
     const int max_amount
 ) {
   int call_cost = action_cost(pot, CallAction());
-
+  int all_in = game.round_stack-pot.total();
 
   HandEvaluator eval;
 
@@ -73,7 +73,7 @@ Action Player::get_action(
   std::set<int> card_idxs;
 
   for (int i=0; i<cards.size(); i++) {
-    std::cout << cards[i] << "\n";
+    std::cout << cards[i] << ",";
     int card = rank_map[std::string(1,cards[i].at(0))]*4 +
                 suit_map[std::string(1,cards[i].at(1))];
     card_idxs.insert(card);
@@ -101,9 +101,9 @@ Action Player::get_action(
     // Pocket Pair
     if (score >= 5500) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(max_amount);
+        return BetAction(all_in);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(max_amount);
+        return RaiseAction(all_in);
       } else if (legal_move_mask & CALL_ACTION_TYPE) {
         return CallAction();
       }
@@ -112,9 +112,9 @@ Action Player::get_action(
     // Face Card
     if (score > 4475) {
       if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(max_amount);
+        return BetAction(all_in);
       } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(max_amount);
+        return RaiseAction(all_in);
       }
     }
 
@@ -134,7 +134,7 @@ Action Player::get_action(
   if (board_cards.size() >= 3) {
     //better than board by 2 order
     if (score - board_score > 6000) {
-      return bet_raise(max_amount, call_cost, legal_move_mask);
+      return bet_raise(all_in, call_cost, legal_move_mask);
     }
 
     if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
