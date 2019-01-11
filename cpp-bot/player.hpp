@@ -7,6 +7,8 @@
 #include "./parser/game.hpp"
 #include "./parser/actions.hpp"
 #include "./omp/HandEvaluator.h"
+#include <set> 
+using namespace omp;
 
 class Player : public Bot {
 private:
@@ -83,7 +85,7 @@ public:
         const int min_amount,
         const int max_amount
     );
-
+    float win_chance(const Hand pocket, const Hand board, const Hand whole, std::set<int> card_idxs);
     Action bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask);
     Action check_fold(const ActionType legal_move_mask);
 };
