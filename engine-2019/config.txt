@@ -35,5 +35,5 @@ PLAYER_1_PATH = ../cpp-bot
 PLAYER_1_NAME = A
 
 PLAYER_2_TYPE = FOLDER
-PLAYER_2_PATH = ../cpp-bot-all
+PLAYER_2_PATH = ../cpp-bot
 PLAYER_2_NAME = B

@@ -2,20 +2,20 @@
 #define __PLAYER_HPP__
 #include <boost/assign/list_of.hpp>
 #include <map>
+#include <set>
 #include <string>
 #include "./parser/bot.hpp"
 #include "./parser/game.hpp"
 #include "./parser/actions.hpp"
 #include "./omp/HandEvaluator.h"
-#include <set>
 using namespace omp;
 
 class Player : public Bot {
 private:
+    HandEvaluator evaluator;
     // Your private instance variables go here.
     std::map<std::string, int> suit_map = boost::assign::map_list_of("s",0)("h",1)("c",2)("d",3);
-    std::map<std::string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)
-                                                                    ("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
+    std::map<std::string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)                                                      ("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
 
     //                      2     3     4     5     6     7     8     9     10    J     Q     K     A
     float pflop[13][13] = {{0.51, 0.35, 0.36, 0.37, 0.37, 0.37, 0.40, 0.42, 0.44, 0.47, 0.49, 0.53, 0.57}, // 2
@@ -32,6 +32,9 @@ private:
                            {0.55, 0.56, 0.57, 0.58, 0.58, 0.59, 0.60, 0.61, 0.63, 0.64, 0.64, 0.83, 0.66}, // K
                            {0.59, 0.60, 0.61, 0.62, 0.62, 0.63, 0.63, 0.64, 0.66, 0.66, 0.67, 0.68, 0.85}, // A
                          };
+
+
+
 public:
     Player();
 
@@ -101,8 +104,9 @@ public:
         const int min_amount,
         const int max_amount
     );
-    float hand_strength(const std::vector<std::string>& cards);
-    float win_chance(const Hand pocket, const Hand board, const Hand whole, std::set<int> card_idxs);
+    float hand_strength(int fc, int sc);
+    float win_chance(const Hand pocket, const Hand board, const Hand whole, const std::set<int> card_idxs);
+    float getOppOdds(const Hand whole, const Hand board, const std::set<int> card_idxs);
     Action bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask);
     Action check_fold(const ActionType legal_move_mask);
 };
