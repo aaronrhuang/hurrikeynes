@@ -32,7 +32,7 @@ void Player::handle_round_over(
     const int new_opponent_bankroll,
     const std::vector<std::string>& move_history
 ) {
-  std::cout << "OVER: " << result << "\n";
+
 }
 
 // Where the magic happens - your code should implement this function.
@@ -62,6 +62,9 @@ Action Player::get_action(
     const int min_amount,
     const int max_amount
 ) {
+  if (2*(1000-round.hand_num) < round.bankroll) {
+    return check_fold(legal_move_mask);
+  }
   int call_cost = action_cost(pot, CallAction());
   int all_in = game.round_stack-pot.total();
 
@@ -100,35 +103,39 @@ Action Player::get_action(
   if (board_cards.size() == 0) {
     float strength = hand_strength(cards);
     std::cout << "STR " << strength << "\n";
-    // Pocket Pair
-    if (score >= 5500) {
-      if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(all_in);
-      } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(all_in);
-      } else if (legal_move_mask & CALL_ACTION_TYPE) {
-        return CallAction();
-      }
+    if (strength > 0.6) {
+      return bet_raise(all_in, call_cost, legal_move_mask);
     }
-
-    // Face Card
-    if (score > 4475) {
-      if (legal_move_mask & BET_ACTION_TYPE) {
-        return BetAction(all_in);
-      } else if (legal_move_mask & RAISE_ACTION_TYPE) {
-        return RaiseAction(all_in);
-      }
-    }
-
     return check_fold(legal_move_mask);
-
-    if (legal_move_mask & CHECK_ACTION_TYPE) {
-      return CheckAction();
-    } else if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
-      return CallAction();
-    } else {
-      return FoldAction();
-    }
+    // // Pocket Pair
+    // if (score >= 5500) {
+    //   if (legal_move_mask & BET_ACTION_TYPE) {
+    //     return BetAction(all_in);
+    //   } else if (legal_move_mask & RAISE_ACTION_TYPE) {
+    //     return RaiseAction(all_in);
+    //   } else if (legal_move_mask & CALL_ACTION_TYPE) {
+    //     return CallAction();
+    //   }
+    // }
+    //
+    // // Face Card
+    // if (score > 4475) {
+    //   if (legal_move_mask & BET_ACTION_TYPE) {
+    //     return BetAction(all_in);
+    //   } else if (legal_move_mask & RAISE_ACTION_TYPE) {
+    //     return RaiseAction(all_in);
+    //   }
+    // }
+    //
+    // return check_fold(legal_move_mask);
+    //
+    // if (legal_move_mask & CHECK_ACTION_TYPE) {
+    //   return CheckAction();
+    // } else if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
+    //   return CallAction();
+    // } else {
+    //   return FoldAction();
+    // }
   } //preflop
 
   // FLOP
@@ -176,6 +183,9 @@ float Player::win_chance(const Hand pocket,
 Action Player::bet_raise(const int amount,
                          const int call_cost,
                          const ActionType legal_move_mask) {
+  if (call_cost > 390) {
+    return CallAction();
+  }
   if (legal_move_mask & BET_ACTION_TYPE) {
     return BetAction(amount);
   } else if (amount > call_cost && legal_move_mask & RAISE_ACTION_TYPE) {
