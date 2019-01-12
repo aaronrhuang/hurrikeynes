@@ -93,18 +93,21 @@ Action Player::get_action(
   }
   std::cout << "\n";
 
-  int score = eval.evaluate(whole);
+  int currScore = eval.evaluate(whole);
+  float currOdds = win_chance(pocket, board, whole, card_idxs);
   int board_score = eval.evaluate(board);
 
-  std::cout << score << " : " << board_score << "\n";
+  std::cout << currScore << " : " << board_score << "\n";
 
-  // preflop
+  // preflop or turn
   //================================
   if (board_cards.size() == 0) {
     float strength = hand_strength(cards);
     std::cout << "STR " << strength << "\n";
     if (strength > 0.6) {
-      return bet_raise(all_in, call_cost, legal_move_mask);
+      return bet_raise(all_in/2 * strength, call_cost, legal_move_mask);
+    } else if (strength > 0.5) {
+      return bet_raise(30*strength, call_cost, legal_move_mask);
     }
     return check_fold(legal_move_mask);
     // // Pocket Pair
@@ -137,13 +140,22 @@ Action Player::get_action(
     //   return FoldAction();
     // }
   } //preflop
+  // TURN
+  // ======================
+  if (board_cards.size() == 4 || board_cards.size() == 5) {
+    float currOdds = win_chance(pocket, board, whole, card_idxs);
+    if (currOdds <= 0.5) {
+        return check_fold(legal_move_mask);
+    }
+    return bet_raise((2*currOdds - 1) * all_in, call_cost, legal_move_mask);
+  } // turn
 
   // FLOP
   // ==================
-  if (board_cards.size() >= 3) {
+  if (board_cards.size() == 3) {
     //better than board by 2 order
-    if (score - board_score > 6000) {
-      return bet_raise(all_in, call_cost, legal_move_mask);
+    if (score - board_score > 8000) {
+      return CallAction();
     }
 
     if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
@@ -152,11 +164,6 @@ Action Player::get_action(
   }
 
   return check_fold(legal_move_mask);
-  if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 10) {
-    return CallAction();
-  } else {
-    return check_fold(legal_move_mask);
-  }
 }
 
 float Player::hand_strength(const std::vector<std::string> &cards) {
@@ -172,17 +179,102 @@ float Player::hand_strength(const std::vector<std::string> &cards) {
   }
   return strength;
 }
-
-float Player::win_chance(const Hand pocket,
-                         const Hand board,
-                         const Hand whole,
-                         const std::set<int> card_idxs) {
-  return 0.0;
+// 0 <= fc, sc < 52
+float Player::hand_strength(int fc, int sc) {
+  bool suited = fc % 4 == sc % 4;
+  int rank1 = fc / 4;
+  int rank2 = sc / 4;
+  float strength = pflop[rank1][rank2];
+  if (suited) {
+    strength += 0.05;
+  } else {
+    strength -= 0.05;
+  }
+  return strength;
 }
 
-Action Player::bet_raise(const int amount,
-                         const int call_cost,
-                         const ActionType legal_move_mask) {
+float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, const std::set<int> card_idxs) {
+    if (board.size() == 0) {
+        int fc = -1;
+        int sc = -1;
+        for (int card_idx : card_idxs) {
+            if (fc == -1) {
+                fc = card_idx;
+            } else {
+                sc = card_idx;
+                break;
+            }
+        }
+        return hand_strength(fc, sc);
+    }
+    int numRemCards = 5 - board.size();
+    if (numRemCards < 0) {
+        printf("Too many cards on board");
+        return -1;
+    }
+    HandEvaluator evaluator;
+    if (numRemCards == 0) {
+        return getOppOdds(whole, card_idxs);
+    }
+    if (numRemCards == 1) {
+        float sum = 0;
+        float ct = 0;
+        for (int nc = 0; nc < 52; nc++) {
+            if (card_idxs.contains(nc)) {
+                continue;
+            }
+            Hand full = whole + Hand(nc);
+            std::set<int> newci;
+            newci.insert(card_idxs.begin(), card_idxs.end());
+            newci.insert(nc);
+            sum += getOppOdds(full, newci);
+            ct += 1;       
+        }
+        return sum / ct;    
+    }
+    if (numRemCards == 2) {
+        float sum = 0;
+        float ct = 0;
+        for (int nfc = 0; nfc < 52; nfc++) {
+            if (card_idxs.contains(nfc)) continue;
+            for (int nsc = 0; nsc < 52; nsc++) {
+                if (card_idxs.contains(nsc)) continue;
+                Hand full = whole + Hand(nfc) + Hand(nsc);
+                std::set<int> newci;
+                newci.insert(card_idxs.begin(), card_idxs.end());
+                newci.insert(nfc);
+                newci.insert(nsc);
+                sum += getOppOdds(full, newci);
+                ct += 1;    
+            }
+        }
+        return sum / ct;
+    }
+    if (numRemCards > 2) {
+        printf("Too many cards to brute force over");
+        return -1;
+    }
+    return -1;
+}
+
+private float getOppOdds(Hand whole, std::set<int> card_idxs) {
+    int handScore = evaluator.evaluate(whole);
+    float tot = 0;
+    float win = 0;
+    for (int ofc = 0; ofc < 52; ofc++) {
+        if (card_idxs.contains(ofc)) continue;
+        for (int osc = 0; osc < 52; osc++) {
+            if (card_idxs.contains(osc)) continue;
+            Hand oppHand = board + Hand(ofc) + Hand(osc);
+            int oppHandScore = evaluator.evaluate(oppHand);
+            tot += 1;
+            win += handScore > oppHandScore ? 1 : 0;
+        }
+    }
+    return win / tot;
+}
+ 
+Action Player::bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask) {
   if (call_cost > 390) {
     return CallAction();
   }
