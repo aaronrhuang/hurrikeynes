@@ -7,15 +7,31 @@
 #include "./parser/game.hpp"
 #include "./parser/actions.hpp"
 #include "./omp/HandEvaluator.h"
-#include <set> 
+#include <set>
 using namespace omp;
 
 class Player : public Bot {
 private:
     // Your private instance variables go here.
     std::map<std::string, int> suit_map = boost::assign::map_list_of("s",0)("h",1)("c",2)("d",3);
-    std::map<std::string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
+    std::map<std::string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)
+                                                                    ("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
 
+    //                      2     3     4     5     6     7     8     9     10    J     Q     K     A
+    float pflop[13][13] = {{0.51, 0.35, 0.36, 0.37, 0.37, 0.37, 0.40, 0.42, 0.44, 0.47, 0.49, 0.53, 0.57}, // 2
+                           {0.39, 0.55, 0.38, 0.39, 0.39, 0.39, 0.40, 0.43, 0.45, 0.48, 0.50, 0.54, 0.58}, // 3
+                           {0.40, 0.42, 0.58, 0.41, 0.41, 0.41, 0.42, 0.43, 0.46, 0.48, 0.51, 0.54, 0.59}, // 4
+                           {0.41, 0.43, 0.44, 0.61, 0.43, 0.43, 0.44, 0.45, 0.47, 0.49, 0.52, 0.55, 0.60}, // 5
+                           {0.40, 0.42, 0.44, 0.46, 0.64, 0.45, 0.46, 0.47, 0.48, 0.50, 0.53, 0.56, 0.59}, // 6
+                           {0.41, 0.43, 0.45, 0.46, 0.48, 0.67, 0.47, 0.48, 0.50, 0.52, 0.54, 0.57, 0.60}, // 7
+                           {0.43, 0.43, 0.45, 0.47, 0.49, 0.50, 0.69, 0.50, 0.52, 0.53, 0.55, 0.58, 0.61}, // 8
+                           {0.45, 0.46, 0.46, 0.48, 0.50, 0.51, 0.53, 0.72, 0.53, 0.55, 0.57, 0.59, 0.62}, // 9
+                           {0.47, 0.48, 0.49, 0.49, 0.51, 0.53, 0.54, 0.56, 0.75, 0.57, 0.59, 0.61, 0.64}, // 10
+                           {0.50, 0.50, 0.51, 0.52, 0.53, 0.54, 0.56, 0.57, 0.59, 0.78, 0.59, 0.62, 0.65}, // J
+                           {0.52, 0.53, 0.54, 0.55, 0.55, 0.56, 0.58, 0.59, 0.61, 0.61, 0.80, 0.62, 0.65}, // Q
+                           {0.55, 0.56, 0.57, 0.58, 0.58, 0.59, 0.60, 0.61, 0.63, 0.64, 0.64, 0.83, 0.66}, // K
+                           {0.59, 0.60, 0.61, 0.62, 0.62, 0.63, 0.63, 0.64, 0.66, 0.66, 0.67, 0.68, 0.85}, // A
+                         };
 public:
     Player();
 
@@ -85,6 +101,7 @@ public:
         const int min_amount,
         const int max_amount
     );
+    float hand_strength(const std::vector<std::string>& cards);
     float win_chance(const Hand pocket, const Hand board, const Hand whole, std::set<int> card_idxs);
     Action bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask);
     Action check_fold(const ActionType legal_move_mask);

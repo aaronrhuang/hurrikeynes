@@ -85,8 +85,8 @@ Action Player::get_action(
     int card = rank_map[std::string(1,board_cards[i].at(0))]*4 +
                 suit_map[std::string(1,board_cards[i].at(1))];
     card_idxs.insert(card);
-    board += Hand();
-    whole += Hand(suit_map[std::string(1,board_cards[i].at(1))]*13 + rank_map[std::string(1,board_cards[i].at(0))]);
+    board += Hand(card);
+    whole += Hand(card);
   }
   std::cout << "\n";
 
@@ -98,6 +98,8 @@ Action Player::get_action(
   // preflop
   //================================
   if (board_cards.size() == 0) {
+    float strength = hand_strength(cards);
+    std::cout << "STR " << strength << "\n";
     // Pocket Pair
     if (score >= 5500) {
       if (legal_move_mask & BET_ACTION_TYPE) {
@@ -150,11 +152,30 @@ Action Player::get_action(
   }
 }
 
-float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, const std::set<int> card_idxs) {
-  return 0.;
+float Player::hand_strength(const std::vector<std::string> &cards) {
+  bool suited = suit_map[std::string(1,cards[0].at(1))] ==
+                  suit_map[std::string(1,cards[1].at(1))];
+  int rank1 = rank_map[std::string(1,cards[0].at(0))];
+  int rank2 = rank_map[std::string(1,cards[1].at(0))];
+  float strength = pflop[rank1][rank2];
+  if (suited) {
+    strength += 0.05;
+  } else {
+    strength -= 0.05;
+  }
+  return strength;
 }
 
-Action Player::bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask) {
+float Player::win_chance(const Hand pocket,
+                         const Hand board,
+                         const Hand whole,
+                         const std::set<int> card_idxs) {
+  return 0.0;
+}
+
+Action Player::bet_raise(const int amount,
+                         const int call_cost,
+                         const ActionType legal_move_mask) {
   if (legal_move_mask & BET_ACTION_TYPE) {
     return BetAction(amount);
   } else if (amount > call_cost && legal_move_mask & RAISE_ACTION_TYPE) {
