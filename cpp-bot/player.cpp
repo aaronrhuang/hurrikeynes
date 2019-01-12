@@ -91,7 +91,6 @@ Action Player::get_action(
   std::cout << "\n";
 
   int currScore = evaluator.evaluate(whole);
-  float currOdds = win_chance(pocket, board, whole, card_idxs);
   int board_score = evaluator.evaluate(board);
 
   std::cout << currScore << " : " << board_score << "\n";
