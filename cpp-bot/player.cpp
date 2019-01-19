@@ -1,8 +1,6 @@
 #include <iostream>
 #include "player.hpp"
 
-using namespace omp;
-
 Player::Player() {
 }
 
@@ -11,25 +9,25 @@ void Player::handle_new_game(const Game& new_game) {
   Hand p = Hand::empty();
   p += Hand(47) + Hand(43);
   w += Hand(51) + Hand(1) + Hand(4) + Hand(5) + Hand(8);
-  std::cout << p.count() << "\n";
-  std::cout << "NEW GAME TEST: " << evaluator.evaluate(p) << " : " << evaluator.evaluate(w) << "\n";
+  cout << p.count() << "\n";
+  cout << "NEW GAME TEST: " << evaluator.evaluate(p) << " : " << evaluator.evaluate(w) << "\n";
 }
 
 void Player::handle_new_round(const Game& game, const Round& new_round) {
-  std::cout << "NEW ROUND: " << game.num_hands << " : " << game.time_bank << "\n";
+  cout << "NEW ROUND: " << game.num_hands << " : " << game.time_bank << "\n";
 }
 
 void Player::handle_round_over(
     const Game& game,
     const Round& round,
     const Pot& pot,
-    const std::vector<std::string>& cards,
-    const std::vector<std::string>& opponent_cards,
-    const std::vector<std::string>& board_cards,
-    const std::string& result,
+    const vector<string>& cards,
+    const vector<string>& opponent_cards,
+    const vector<string>& board_cards,
+    const string& result,
     const int new_bankroll,
     const int new_opponent_bankroll,
-    const std::vector<std::string>& move_history
+    const vector<string>& move_history
 ) {
 
 }
@@ -53,10 +51,10 @@ Action Player::get_action(
     const Game& game,
     const Round& round,
     const Pot& pot,
-    const std::vector<std::string>& cards,
-    const std::vector<std::string>& board_cards,
+    const vector<string>& cards,
+    const vector<string>& board_cards,
     const ActionType legal_move_mask,
-    const std::vector<std::string>& move_history,
+    const vector<string>& move_history,
     const float time_left,
     const int min_amount,
     const int max_amount
@@ -70,45 +68,39 @@ Action Player::get_action(
   Hand pocket = Hand::empty();
   Hand board = Hand::empty();
   Hand whole = Hand::empty();
-  std::set<int> card_idxs;
+  set<int> card_idxs;
 
   for (int i=0; i<cards.size(); i++) {
-    std::cout << cards[i] << ",";
-    int card = rank_map[std::string(1,cards[i].at(0))]*4 +
-                suit_map[std::string(1,cards[i].at(1))];
+    int card = rank_map[string(1,cards[i].at(0))]*4 +
+                suit_map[string(1,cards[i].at(1))];
     card_idxs.insert(card);
     pocket += Hand(card);
     whole += Hand(card);
   }
   for (int i=0; i<board_cards.size(); i++) {
-    std::cout << board_cards[i];
-    int card = rank_map[std::string(1,board_cards[i].at(0))]*4 +
-                suit_map[std::string(1,board_cards[i].at(1))];
+    int card = rank_map[string(1,board_cards[i].at(0))]*4 +
+                suit_map[string(1,board_cards[i].at(1))];
     card_idxs.insert(card);
     board += Hand(card);
     whole += Hand(card);
   }
-  std::cout << "\n";
 
-  int currScore = evaluator.evaluate(whole);
+  int curr_score = evaluator.evaluate(whole);
   int board_score = evaluator.evaluate(board);
+  int delta = curr_score - board_score;
+  // cout << curr_score << " : " << board_score << "\n";
 
-  std::cout << currScore << " : " << board_score << "\n";
-
-  // preflop or turn
+  // PREFLOP
   //================================
   if (board_cards.size() == 0) {
-    int fc = rank_map[std::string(1,cards[0].at(0))]*4 +
-                suit_map[std::string(1,cards[0].at(1))];
-    int sc = rank_map[std::string(1,cards[1].at(0))]*4 +
-                suit_map[std::string(1,cards[1].at(1))];
+    int fc = rank_map[string(1,cards[0].at(0))]*4 +
+                suit_map[string(1,cards[0].at(1))];
+    int sc = rank_map[string(1,cards[1].at(0))]*4 +
+                suit_map[string(1,cards[1].at(1))];
     float strength = hand_strength(fc, sc);
 
-    std::cout << "STR " << strength << "\n";
     if (strength > 0.6) {
-      return bet_raise(all_in/2 * strength, call_cost, legal_move_mask);
-    } else if (strength > 0.5) {
-      return bet_raise(30*strength, call_cost, legal_move_mask);
+      return bet_raise((int)(all_in/2*strength), call_cost, legal_move_mask);
     }
     if (legal_move_mask & CALL_ACTION_TYPE && call_cost < 5) {
       return CallAction();
@@ -116,37 +108,55 @@ Action Player::get_action(
     return check_fold(legal_move_mask);
   } //preflop
 
-  // TURN RIVER
-  // ======================
-  if (board_cards.size() == 4 || board_cards.size() == 5) {
-    float currOdds = win_chance(pocket, board, whole, card_idxs);
-    if (currOdds <= 0.5) {
-        return check_fold(legal_move_mask);
-    }
-    return bet_raise((2*currOdds - 1) * all_in, call_cost, legal_move_mask);
-  } // turn
+  float curr_chance = opp_odds(whole, board, card_idxs);
+  cout << "STR " << board_cards.size() << ": " << curr_chance << "\n";
 
   // FLOP
   // ==================
-  if (board_cards.size() == 3) {
-    //better than board by 2 order
-    if (currScore - board_score > 8000) {
-      return CallAction();
+  if (board_cards.size() >= 3) {
+    if (curr_chance  > 0.6) {
+      cout << (int)(all_in/2*curr_chance) << '\n';
+      return bet_raise((int)(all_in/2*curr_chance), call_cost, legal_move_mask);
     }
+    if (curr_chance  > 0.5) {
+      return bet_raise((int)(all_in/4*curr_chance), call_cost, legal_move_mask);
+    }
+  }
 
-    if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
-      return CallAction();
+  // TURN
+  // ================
+  if (board_cards.size() == 4) {
+    if (curr_chance  > 0.6) {
+      return bet_raise((int)(all_in/2*curr_chance), call_cost, legal_move_mask);
     }
+    if (curr_chance  > 0.5) {
+      return bet_raise((int)(all_in/4*curr_chance), call_cost, legal_move_mask);
+    }
+  }
+
+  // RIVER
+  // ================
+  if (board_cards.size() == 4) {
+    if (curr_chance  > 0.5) {
+      return bet_raise((int)(all_in/2*curr_chance), call_cost, legal_move_mask);
+    }
+  }
+
+  if ((float)(pot.total())/(float)(call_cost) > 10 && legal_move_mask & CALL_ACTION_TYPE) {
+    return CallAction();
+  }
+  if (call_cost < 10 && legal_move_mask & CALL_ACTION_TYPE) {
+    return CallAction();
   }
 
   return check_fold(legal_move_mask);
 }
 
-// float Player::hand_strength(const std::vector<std::string> &cards) {
-//   bool suited = suit_map[std::string(1,cards[0].at(1))] ==
-//                   suit_map[std::string(1,cards[1].at(1))];
-//   int rank1 = rank_map[std::string(1,cards[0].at(0))];
-//   int rank2 = rank_map[std::string(1,cards[1].at(0))];
+// float Player::hand_strength(const vector<string> &cards) {
+//   bool suited = suit_map[string(1,cards[0].at(1))] ==
+//                   suit_map[string(1,cards[1].at(1))];
+//   int rank1 = rank_map[string(1,cards[0].at(0))];
+//   int rank2 = rank_map[string(1,cards[1].at(0))];
 //   float strength = pflop[rank1][rank2];
 //   if (suited) {
 //     strength += 0.05;
@@ -169,7 +179,7 @@ float Player::hand_strength(int fc, int sc) {
   return strength;
 }
 
-float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, const std::set<int> card_idxs) {
+float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, const set<int> card_idxs) {
     if (board.count() == 0) {
         int fc = -1;
         int sc = -1;
@@ -190,7 +200,7 @@ float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, 
     }
 
     if (numRemCards == 0) {
-        return getOppOdds(whole, board, card_idxs);
+        return opp_odds(whole, board, card_idxs);
     }
     if (numRemCards == 1) {
         float sum = 0;
@@ -200,10 +210,10 @@ float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, 
                 continue;
             }
             Hand full = whole + Hand(nc);
-            std::set<int> newci;
+            set<int> newci;
             newci.insert(card_idxs.begin(), card_idxs.end());
             newci.insert(nc);
-            sum += getOppOdds(full, board, newci);
+            sum += opp_odds(full, board, newci);
             ct += 1;
         }
         return sum / ct;
@@ -216,11 +226,11 @@ float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, 
             for (int nsc = 0; nsc < 52; nsc++) {
                 if (card_idxs.count(nsc) > 0) continue;
                 Hand full = whole + Hand(nfc) + Hand(nsc);
-                std::set<int> newci;
+                set<int> newci;
                 newci.insert(card_idxs.begin(), card_idxs.end());
                 newci.insert(nfc);
                 newci.insert(nsc);
-                sum += getOppOdds(full, board,  newci);
+                sum += opp_odds(full, board,  newci);
                 ct += 1;
             }
         }
@@ -233,7 +243,7 @@ float Player::win_chance(const Hand pocket, const Hand board, const Hand whole, 
     return -1;
 }
 
-float Player::getOppOdds(const Hand whole, const Hand board, const std::set<int> card_idxs) {
+float Player::opp_odds(const Hand whole, const Hand board, const set<int> card_idxs) {
     HandEvaluator evaluator;
     int handScore = evaluator.evaluate(whole);
     float tot = 0;
@@ -252,8 +262,11 @@ float Player::getOppOdds(const Hand whole, const Hand board, const std::set<int>
 }
 
 Action Player::bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask) {
-  if (call_cost > 390) {
+  if (call_cost > 390 && amount > 390 && legal_move_mask & CALL_ACTION_TYPE) {
     return CallAction();
+  }
+  if (amount == 0 && legal_move_mask & CHECK_ACTION_TYPE) {
+    return CheckAction();
   }
   if (legal_move_mask & BET_ACTION_TYPE) {
     return BetAction(amount);

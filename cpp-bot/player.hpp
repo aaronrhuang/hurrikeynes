@@ -9,13 +9,14 @@
 #include "./parser/actions.hpp"
 #include "./omp/HandEvaluator.h"
 using namespace omp;
+using namespace std;
 
 class Player : public Bot {
 private:
     HandEvaluator evaluator;
     // Your private instance variables go here.
-    std::map<std::string, int> suit_map = boost::assign::map_list_of("s",0)("h",1)("c",2)("d",3);
-    std::map<std::string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)                                                      ("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
+    map<string, int> suit_map = boost::assign::map_list_of("s",0)("h",1)("c",2)("d",3);
+    map<string, int> rank_map = boost::assign::map_list_of("2",0)("3",1)("4",2)("5",3)("6",4)("7",5)("8",6)                                                      ("9",7)("10",8)("J",9)("Q",10)("K",11)("A",12);
 
     //                      2     3     4     5     6     7     8     9     10    J     Q     K     A
     float pflop[13][13] = {{0.51, 0.35, 0.36, 0.37, 0.37, 0.37, 0.40, 0.42, 0.44, 0.47, 0.49, 0.53, 0.57}, // 2
@@ -68,13 +69,13 @@ public:
         const Game& game,
         const Round& round,
         const Pot& pot,
-        const std::vector<std::string>& cards,
-        const std::vector<std::string>& opponent_cards,
-        const std::vector<std::string>& board_cards,
-        const std::string& result,
+        const vector<string>& cards,
+        const vector<string>& opponent_cards,
+        const vector<string>& board_cards,
+        const string& result,
         const int new_bankroll,
         const int new_opponent_bankroll,
-        const std::vector<std::string>& move_history
+        const vector<string>& move_history
     );
 
     // Where the magic happens - your code should implement this function.
@@ -96,17 +97,17 @@ public:
         const Game& game,
         const Round& round,
         const Pot& pot,
-        const std::vector<std::string>& cards,
-        const std::vector<std::string>& board_cards,
+        const vector<string>& cards,
+        const vector<string>& board_cards,
         const ActionType legal_move_mask,
-        const std::vector<std::string>& move_history,
+        const vector<string>& move_history,
         const float time_left,
         const int min_amount,
         const int max_amount
     );
     float hand_strength(int fc, int sc);
-    float win_chance(const Hand pocket, const Hand board, const Hand whole, const std::set<int> card_idxs);
-    float getOppOdds(const Hand whole, const Hand board, const std::set<int> card_idxs);
+    float win_chance(const Hand pocket, const Hand board, const Hand whole, const set<int> card_idxs);
+    float opp_odds(const Hand whole, const Hand board, const set<int> card_idxs);
     Action bet_raise(const int amount, const int call_cost, const ActionType legal_move_mask);
     Action check_fold(const ActionType legal_move_mask);
 };
